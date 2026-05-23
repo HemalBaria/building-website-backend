@@ -22,12 +22,14 @@ async def scrape_building(slug: str) -> dict:
         name = h1.get_text(strip=True)
 
     developer = ""
-    if "development by" in text.lower():
-        idx = text.lower().index("development by")
-        snippet = text[idx:idx+200]
-        for line in snippet.split("\n"):
-            if "development by" in line.lower():
-                developer = line.split("development by")[-1].strip().rstrip(".")
+    for phrase in ["development by", "developed by", "developer is", "developer was"]:
+        if phrase in text.lower():
+            idx = text.lower().index(phrase)
+            snippet = text[idx:idx+200]
+            dev_text = snippet.split("\n")[0]
+            dev_text = dev_text.split(phrase, 1)[-1] if phrase in dev_text.lower() else dev_text.split(phrase.title(), 1)[-1]
+            developer = dev_text.strip().rstrip(".").split(". ")[0]
+            if developer:
                 break
 
     location = ""
