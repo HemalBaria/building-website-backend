@@ -25,10 +25,16 @@ async def scrape_building(slug: str) -> dict:
     for phrase in ["development by", "developed by", "developer is", "developer was"]:
         if phrase in text.lower():
             idx = text.lower().index(phrase)
-            snippet = text[idx:idx+200]
-            dev_text = snippet.split("\n")[0]
-            dev_text = dev_text.split(phrase, 1)[-1] if phrase in dev_text.lower() else dev_text.split(phrase.title(), 1)[-1]
-            developer = dev_text.strip().rstrip(".").split(". ")[0]
+            snippet = text[idx + len(phrase):idx + 300]
+            lines = [l.strip() for l in snippet.split("\n") if l.strip() and l.strip() != "." and l.strip() != "and"]
+            dev_parts = []
+            for line in lines:
+                if any(kw in line.lower() for kw in ["timeline", "timelapse", "construction", "pin", "units"]):
+                    break
+                if line == ".":
+                    break
+                dev_parts.append(line.rstrip("."))
+            developer = " and ".join(dev_parts) if dev_parts else ""
             if developer:
                 break
 
