@@ -74,13 +74,22 @@ async def scrape_building(slug: str) -> dict:
                 break
 
     total_units = ""
-    if "total of" in text.lower() and "unit" in text.lower():
-        idx = text.lower().index("total of")
-        snippet = text[idx:idx+50]
-        for word in snippet.split():
-            if word.replace(",", "").isdigit():
-                total_units = word
+    for pattern in ["total of", "contains", "comprising", "houses"]:
+        if pattern in text.lower() and "unit" in text.lower():
+            idx = text.lower().index(pattern)
+            snippet = text[idx:idx+80]
+            for word in snippet.split():
+                cleaned = word.replace(",", "").replace(".", "")
+                if cleaned.isdigit() and int(cleaned) > 1:
+                    total_units = word
+                    break
+            if total_units:
                 break
+    if not total_units:
+        import re
+        match = re.search(r'(\d[\d,]*)\s*(?:units|apartments|residences)', text, re.IGNORECASE)
+        if match:
+            total_units = match.group(1)
 
     storeys = ""
     if "storey" in text.lower():
