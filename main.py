@@ -50,18 +50,25 @@ async def scrape_building(slug: str) -> dict:
     if "construction began in" in text.lower():
         idx = text.lower().index("construction began in")
         snippet = text[idx:idx+50]
-        start_date = snippet.split("in ")[-1].split(".")[0].split("\n")[0].strip()
+        import re
+        match = re.search(r'\b(\d{4})\b', snippet)
+        if match:
+            start_date = match.group(1)
 
     handover_date = ""
     if "completed" in text.lower():
-        for line in text.split("\n"):
-            if "completed" in line.lower() and any(c.isdigit() for c in line):
-                for p in line.split():
-                    if p.isdigit() and len(p) == 4:
-                        handover_date = p
+        import re
+        # Find "completed by YYYY" or "completed in YYYY"
+        match = re.search(r'completed\s+(?:by|in)\s+(\d{4})', text, re.IGNORECASE)
+        if match:
+            handover_date = match.group(1)
+        else:
+            for line in text.split("\n"):
+                if "completed" in line.lower():
+                    years = re.findall(r'\b(\d{4})\b', line)
+                    if years:
+                        handover_date = years[-1]
                         break
-                if handover_date:
-                    break
 
     units = ""
     beds_found = []
@@ -101,10 +108,15 @@ async def scrape_building(slug: str) -> dict:
 
     storeys = ""
     if "storey" in text.lower():
-        for line in text.split("\n"):
-            if "storey" in line.lower():
-                storeys = line.strip()
-                break
+        import re
+        matches = re.findall(r'(\d+)[-\s]*store?y', text, re.IGNORECASE)
+        if matches:
+            storeys = " + ".join(m + " storeys" for m in matches)
+        else:
+            for line in text.split("\n"):
+                if "storey" in line.lower() and any(c.isdigit() for c in line):
+                    storeys = line.strip()
+                    break
 
     photos = []
     # Try to get the main building image (usually the first large image or og:image)
